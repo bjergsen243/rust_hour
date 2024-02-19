@@ -1,8 +1,8 @@
 #![warn(clippy::all)]
 
-use warp::{http::Method, Filter};
 use handle_errors::return_error;
 use tracing_subscriber::fmt::format::FmtSpan;
+use warp::{http::Method, Filter};
 
 mod routes;
 mod store;
@@ -10,9 +10,18 @@ mod types;
 
 #[tokio::main]
 async fn main() {
-    let log_filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "practical_rust_book=info,warp=error".to_owned());
+    let log_filter = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+        "handle_errors=warn,rust_hour=warn,warp=warn".to_owned()
+    });
 
-    let store = store::Store::new();
+    let store =
+        store::Store::new("postgres://localhost:5432/rustwebdev").await;
+
+    sqlx::migrate!()
+        .run(&store.clone().connection)
+        .await
+        .expect("Cannot migrate DB");
+
     let store_filter = warp::any().map(move || store.clone());
 
     tracing_subscriber::fmt()
@@ -26,22 +35,19 @@ async fn main() {
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
-        .allow_methods(&[Method::PUT, Method::DELETE, Method::GET, Method::POST]);
+        .allow_methods(&[
+            Method::PUT,
+            Method::DELETE,
+            Method::GET,
+            Method::POST,
+        ]);
 
     let get_questions = warp::get()
         .and(warp::path("questions"))
         .and(warp::path::end())
         .and(warp::query())
         .and(store_filter.clone())
-        .and_then(routes::question::get_questions)
-        .with(warp::trace(|info| {
-            tracing::info_span!(
-                "get_questions request",
-                method = %info.method(),
-                path = %info.path(),
-                id = %uuid::Uuid::new_v4(),
-            )})
-        );
+        .and_then(routes::question::get_questions);
 
     let update_question = warp::put()
         .and(warp::path("questions"))
@@ -66,7 +72,7 @@ async fn main() {
         .and_then(routes::question::add_question);
 
     let add_answer = warp::post()
-        .and(warp::path("comments"))
+        .and(warp::path("answers"))
         .and(warp::path::end())
         .and(store_filter.clone())
         .and(warp::body::form())
@@ -75,8 +81,8 @@ async fn main() {
     let routes = get_questions
         .or(update_question)
         .or(add_question)
-        .or(add_answer)
         .or(delete_question)
+        .or(add_answer)
         .with(cors)
         .with(warp::trace::request())
         .recover(return_error);
