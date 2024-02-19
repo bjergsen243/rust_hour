@@ -1,0 +1,18 @@
+workspace = { members = ["handle-errors"] }
+[package]
+name = "ch06"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.2", features = ["full"] }
+warp = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# We can omit the version number for local imports
+handle-errors = { path = "handle-errors" }
+uuid = { version = "0.8", features = ["v4"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
