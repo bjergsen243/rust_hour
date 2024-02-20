@@ -1,7 +1,0 @@
-    Finished dev [unoptimized + debuginfo] target(s) in 0.04s
-     Running `target/debug/ch06`
-[2024-02-19T09:23:06Z ERROR ch06] This is an error!
-[2024-02-19T09:23:06Z INFO  ch06] This is info!
-[2024-02-19T09:23:06Z WARN  ch06] This is a warning!
-[2024-02-19T09:23:06Z INFO  warp::server] Server::run; addr=127.0.0.1:3030
-[2024-02-19T09:23:06Z INFO  warp::server] listening on http://127.0.0.1:3030
