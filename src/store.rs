@@ -30,9 +30,9 @@ impl Store {
     }
 
     pub async fn get_questions(
-        &self,
-        limit: Option<u32>,
-        offset: u32,
+        self,
+        limit: Option<i32>,
+        offset: i32,
     ) -> Result<Vec<Question>, Error> {
         match sqlx::query("SELECT * from questions LIMIT $1 OFFSET $2")
             .bind(limit)
@@ -54,37 +54,28 @@ impl Store {
         }
     }
 
-    pub async fn add_question(&self, new_question: NewQuestion) -> Result<Question, Error> {
-        match sqlx::query(
-            "INSERT INTO questions (title, content, tags)
-                 VALUES ($1, $2, $3)
-                 RETURNING id, title, content, tags",
-        )
-        .bind(new_question.title)
-        .bind(new_question.content)
-        .bind(new_question.tags)
-        .map(|row: PgRow| Question {
-            id: QuestionId(row.get("id")),
-            title: row.get("title"),
-            content: row.get("content"),
-            tags: row.get("tags"),
-        })
-        .fetch_one(&self.connection)
-        .await
-        {
-            Ok(question) => Ok(question),
-            Err(e) => {
-                tracing::event!(tracing::Level::ERROR, "{:?}", e);
-                Err(Error::DatabaseQueryError)
+    pub async fn add_question(self, new_question: NewQuestion) -> Result<Question, Error> {
+        match sqlx::query("INSERT INTO questions (title, content, tags) VALUES ($1, $2, $3) RETURNING id, title, content, tags")
+            .bind(new_question.title)
+            .bind(new_question.content)
+            .bind(new_question.tags)
+            .map(|row: PgRow| Question {
+			    id: QuestionId(row.get("id")),
+                title: row.get("title"),
+			    content: row.get("content"),
+                tags: row.get("tags"),
+		    })
+            .fetch_one(&self.connection)
+            .await {
+                Ok(question) => Ok(question),
+                Err(e) => {
+                    tracing::event!(tracing::Level::ERROR, "{:?}", e);
+                    Err(Error::DatabaseQueryError)
+                },
             }
-        }
     }
 
-    pub async fn update_question(
-        &self,
-        question: Question,
-        question_id: i32,
-    ) -> Result<Question, Error> {
+    pub async fn update_question(self, question: Question, id: i32) -> Result<Question, Error> {
         match sqlx::query(
             "UPDATE questions SET title = $1, content = $2, tags = $3
         WHERE id = $4
@@ -93,7 +84,7 @@ impl Store {
         .bind(question.title)
         .bind(question.content)
         .bind(question.tags)
-        .bind(question_id)
+        .bind(id)
         .map(|row: PgRow| Question {
             id: QuestionId(row.get("id")),
             title: row.get("title"),
@@ -111,9 +102,9 @@ impl Store {
         }
     }
 
-    pub async fn delete_question(&self, question_id: i32) -> Result<bool, Error> {
+    pub async fn delete_question(self, id: i32) -> Result<bool, Error> {
         match sqlx::query("DELETE FROM questions WHERE id = $1")
-            .bind(question_id)
+            .bind(id)
             .execute(&self.connection)
             .await
         {
