@@ -46,7 +46,7 @@ pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
     let token = paseto::tokens::validate_local_token(
         &token,
         None,
-        &"RANDOM WORDS WINTER MACINTOSH PC".as_bytes(),
+        "RANDOM WORDS WINTER MACINTOSH PC".as_bytes(),
         &paseto::tokens::TimeBackend::Chrono,
     )
     .map_err(|_| handle_errors::Error::CannotDecryptToken)?;
