@@ -2,7 +2,7 @@ use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct APIResponse {
     message: String,
 }
@@ -11,7 +11,7 @@ pub struct APIResponse {
 struct BadWord {
     original: String,
     word: String,
-    diviations: i64,
+    deviations: i64,
     info: i64,
     #[serde(rename = "replacedLen")]
     replaced_len: i64,
@@ -28,14 +28,14 @@ struct BadWordsResponse {
 pub async fn check_profanity(content: String) -> Result<String, handle_errors::Error> {
     let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
     let client = ClientBuilder::new(reqwest::Client::new())
-        // Trace HTTP requests. See the tracing crate to make use of these traces
+        // Trace HTTP requests. See the tracing crate to make use of these traces.
         // Retry failed requests.
         .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .build();
 
     let res = client
         .post("https://api.apilayer.com/bad_words?censor_character=*")
-        .header("apikey", "API_KEY")
+        .header("apikey", "mClClO9H5URWmKO5LOfswJsVd78o7QKc")
         .body(content)
         .send()
         .await
