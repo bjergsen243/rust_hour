@@ -1,25 +1,40 @@
 #![warn(clippy::all)]
 
 use handle_errors::return_error;
+
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http::Method, Filter};
 
+mod config;
 mod profanity;
 mod routes;
 mod store;
 mod types;
 
 #[tokio::main]
-async fn main() {
-    let log_filter = std::env::var("RUST_LOG")
-        .unwrap_or_else(|_| "handle_errors=warn,rust_hour=warn,warp=warn".to_owned());
+async fn main() -> Result<(), handle_errors::Error> {
+    let config = config::Config::new().expect("Config can't be set");
 
-    let store = store::Store::new("postgres://sotatek:1@localhost:5433/rustwebdev").await;
+    let log_filter = format!(
+        "handle_errors={},rust_web_dev={},warp={}",
+        config.log_level, config.log_level, config.log_level
+    );
+
+    let store = store::Store::new(&format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.db_user,
+        config.db_password,
+        config.db_host,
+        config.db_port,
+        config.db_name
+    ))
+    .await
+    .map_err(|e| handle_errors::Error::DatabaseQueryError(e))?;
 
     sqlx::migrate!()
         .run(&store.clone().connection)
         .await
-        .expect("Cannot migrate DB");
+        .map_err(|e| handle_errors::Error::MigrationError(e))?;
 
     let store_filter = warp::any().map(move || store.clone());
 
@@ -34,7 +49,12 @@ async fn main() {
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
-        .allow_methods(&[Method::PUT, Method::DELETE, Method::GET, Method::POST]);
+        .allow_methods(&[
+            Method::PUT,
+            Method::DELETE,
+            Method::GET,
+            Method::POST,
+        ]);
 
     let get_questions = warp::get()
         .and(warp::path("questions"))
@@ -101,5 +121,12 @@ async fn main() {
         .with(warp::trace::request())
         .recover(return_error);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    tracing::info!(
+        "Q&A service build ID {}",
+        env!("RUST_WEB_DEV_VERSION")
+    );
+
+    warp::serve(routes).run(([0, 0, 0, 0], config.port)).await;
+
+    Ok(())
 }

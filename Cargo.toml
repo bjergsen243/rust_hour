@@ -1,7 +1,7 @@
 workspace = { members = ["handle-errors"] }
 [package]
 name = "rust_hour"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,10 +12,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.1.1", features = ["full"] }
 handle-errors = { path = "handle-errors", version = "0.1.0" }
-log = "0.4"
-env_logger = "0.9"
-log4rs = "1.0"
-uuid = { version = "0.8", features = ["serde", "v4"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = "0.2"
 sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
@@ -26,4 +22,11 @@ rand = "0.8"
 rust-argon2 = "1.0"
 paseto = "2.0"
 chrono = "0.4.19"
+dotenv = "0.15.0"
+clap = { version = "3.1.7", features = ["derive"] }
+proc-macro2 = "1.0.37"
+openssl = { version = "0.10.32", features = ["vendored"] }
 regex = { version = "1.10.3", features = ["unicode-case"] }
+
+[build-dependencies]
+platforms = "2.0.0"
