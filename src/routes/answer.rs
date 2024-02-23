@@ -1,6 +1,5 @@
 use warp::http::StatusCode;
 
-use crate::profanity::check_profanity;
 use crate::store::Store;
 use crate::types::account::Session;
 use crate::types::answer::NewAnswer;
@@ -11,13 +10,9 @@ pub async fn add_answer(
     new_answer: NewAnswer,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
-    let content = match check_profanity(new_answer.content).await {
-        Ok(res) => res,
-        Err(e) => return Err(warp::reject::custom(e)),
-    };
 
     let answer = NewAnswer {
-        content,
+        content: new_answer.content,
         question_id: new_answer.question_id,
     };
 
