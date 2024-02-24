@@ -1,7 +1,6 @@
 #![warn(clippy::all)]
 
 use handle_errors::return_error;
-
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::{http::Method, Filter};
 
@@ -21,19 +20,15 @@ async fn main() -> Result<(), handle_errors::Error> {
 
     let store = store::Store::new(&format!(
         "postgres://{}:{}@{}:{}/{}",
-        config.db_user,
-        config.db_password,
-        config.db_host,
-        config.db_port,
-        config.db_name
+        config.db_user, config.db_password, config.db_host, config.db_port, config.db_name
     ))
     .await
-    .map_err(|e| handle_errors::Error::DatabaseQueryError(e))?;
+    .map_err(handle_errors::Error::DatabaseQueryError)?;
 
     sqlx::migrate!()
         .run(&store.clone().connection)
         .await
-        .map_err(|e| handle_errors::Error::MigrationError(e))?;
+        .map_err(handle_errors::Error::MigrationError)?;
 
     let store_filter = warp::any().map(move || store.clone());
 
@@ -48,12 +43,7 @@ async fn main() -> Result<(), handle_errors::Error> {
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
-        .allow_methods(&[
-            Method::PUT,
-            Method::DELETE,
-            Method::GET,
-            Method::POST,
-        ]);
+        .allow_methods(&[Method::PUT, Method::DELETE, Method::GET, Method::POST]);
 
     let get_questions = warp::get()
         .and(warp::path("questions"))
@@ -87,6 +77,15 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(warp::body::json())
         .and_then(routes::question::add_question);
 
+    let get_answers = warp::get()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path("answers"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(store_filter.clone())
+        .and_then(routes::question::get_answers);
+
     let add_answer = warp::post()
         .and(warp::path("answers"))
         .and(warp::path::end())
@@ -94,6 +93,23 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(store_filter.clone())
         .and(warp::body::form())
         .and_then(routes::answer::add_answer);
+
+    let update_answer = warp::put()
+        .and(warp::path("answers"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::answer::update_answer);
+
+    let delete_answer = warp::delete()
+        .and(warp::path("answers"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and_then(routes::answer::delete_answer);
 
     let registration = warp::post()
         .and(warp::path("registration"))
@@ -109,21 +125,40 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(warp::body::json())
         .and_then(routes::authentication::login);
 
+    let update_password = warp::put()
+        .and(warp::path("accounts"))
+        .and(warp::path("update_password"))
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::account::update_password);
+
+    let update_account = warp::put()
+        .and(warp::path("account"))
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::account::update_account);
+    // todo: need a route to get account information
     let routes = get_questions
         .or(update_question)
         .or(add_question)
         .or(delete_question)
+        .or(get_answers)
         .or(add_answer)
+        .or(update_answer)
+        .or(delete_answer)
         .or(registration)
         .or(login)
+        .or(update_password)
+        .or(update_account)
         .with(cors)
         .with(warp::trace::request())
         .recover(return_error);
 
-    tracing::info!(
-        "Q&A service build ID {}",
-        env!("RUST_WEB_DEV_VERSION")
-    );
+    tracing::info!("Q&A service build ID {}", env!("RUST_WEB_DEV_VERSION"));
 
     warp::serve(routes).run(([0, 0, 0, 0], config.port)).await;
 
