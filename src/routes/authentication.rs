@@ -1,4 +1,4 @@
-use argon2::{self, Config};
+use argon2::Config;
 use chrono::prelude::*;
 use rand::Rng;
 use std::{env, future};

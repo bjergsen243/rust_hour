@@ -53,7 +53,6 @@ pub fn extract_pagination(params: HashMap<String, String>) -> Result<Pagination,
     Err(Error::MissingParameters)
 }
 
-
 #[cfg(test)]
 mod pagination_tests {
     use super::{extract_pagination, Error, HashMap, Pagination};
