@@ -30,6 +30,22 @@ pub struct AccountUpdate {
     pub age: i32,
 }
 
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountUpdatePassword(pub String);
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountUpdatePassword (pub String);
+pub struct AccountInformation {
+    pub id: String,
+    pub email: String,
+    pub name: String,
+    pub age: i32,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountLogin {
+    pub email: String,
+    pub password: String,
+}

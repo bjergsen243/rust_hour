@@ -6,7 +6,7 @@ use sqlx::{
 use handle_errors::Error;
 
 use crate::types::{
-    account::{Account, AccountId, AccountUpdate, AccountUpdatePassword},
+    account::{Account, AccountId, AccountInformation, AccountUpdate, AccountUpdatePassword},
     answer::{Answer, AnswerId, NewAnswer},
     question::{NewQuestion, Question, QuestionId},
 };
@@ -186,11 +186,15 @@ impl Store {
     }
 
     pub async fn add_account(self, account: Account) -> Result<bool, Error> {
-        match sqlx::query("INSERT INTO accounts (email, password) VALUES ($1, $2)")
-            .bind(account.email)
-            .bind(account.password)
-            .execute(&self.connection)
-            .await
+        match sqlx::query(
+            "INSERT INTO accounts (email, password, name, age) VALUES ($1, $2, $3, $4)",
+        )
+        .bind(account.email)
+        .bind(account.password)
+        .bind(account.name)
+        .bind(account.age)
+        .execute(&self.connection)
+        .await
         {
             Ok(_) => Ok(true),
             Err(error) => {
@@ -373,6 +377,26 @@ impl Store {
         .await
         {
             Ok(answers) => Ok(answers),
+            Err(e) => {
+                tracing::event!(tracing::Level::ERROR, "{:?}", e);
+                Err(Error::DatabaseQueryError(e))
+            }
+        }
+    }
+
+    pub async fn get_information(self, account_id: AccountId) -> Result<AccountInformation, Error> {
+        match sqlx::query("SELECT * FROM accounts WHERE id = $1")
+            .bind(account_id.0)
+            .map(|row: PgRow| AccountInformation {
+                id: row.get("id"),
+                email: row.get("email"),
+                name: row.get("name"),
+                age: row.get("age"),
+            })
+            .fetch_one(&self.connection)
+            .await
+        {
+            Ok(account) => Ok(account),
             Err(e) => {
                 tracing::event!(tracing::Level::ERROR, "{:?}", e);
                 Err(Error::DatabaseQueryError(e))

@@ -141,7 +141,14 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(store_filter.clone())
         .and(warp::body::json())
         .and_then(routes::account::update_account);
-    // todo: need a route to get account information
+
+    let get_information = warp::get()
+        .and(warp::path("account"))
+        .and(warp::path("information"))
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and_then(routes::account::get_information);
+
     let routes = get_questions
         .or(update_question)
         .or(add_question)
@@ -154,6 +161,7 @@ async fn main() -> Result<(), handle_errors::Error> {
         .or(login)
         .or(update_password)
         .or(update_account)
+        .or(get_information)
         .with(cors)
         .with(warp::trace::request())
         .recover(return_error);

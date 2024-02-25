@@ -91,7 +91,6 @@ pub async fn add_question(
     }
 }
 
-
 #[instrument]
 pub async fn get_answers(
     id: i32,

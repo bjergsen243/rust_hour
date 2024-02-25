@@ -5,7 +5,7 @@ use std::{env, future};
 use warp::{http::StatusCode, Filter};
 
 use crate::store::Store;
-use crate::types::account::{Account, AccountId, Session};
+use crate::types::account::{Account, AccountId, AccountLogin, Session};
 
 pub async fn register(store: Store, account: Account) -> Result<impl warp::Reply, warp::Rejection> {
     let hashed_password = hash_password(account.password.as_bytes());
@@ -24,7 +24,7 @@ pub async fn register(store: Store, account: Account) -> Result<impl warp::Reply
     }
 }
 
-pub async fn login(store: Store, login: Account) -> Result<impl warp::Reply, warp::Rejection> {
+pub async fn login(store: Store, login: AccountLogin) -> Result<impl warp::Reply, warp::Rejection> {
     match store.get_account(login.email).await {
         Ok(account) => match verify_password(&account.password, login.password.as_bytes()) {
             Ok(verified) => {
