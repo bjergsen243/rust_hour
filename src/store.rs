@@ -11,12 +11,28 @@ use crate::types::{
     question::{NewQuestion, Question, QuestionId},
 };
 
+/// Represents a persistent storage unit for your application.
+///
+/// This struct provides a connection pool to a PostgreSQL database (`PgPool`).
+/// Use this struct to interact with and manage your application's data.
+///
+/// # Fields
+///
+/// * `connection`: A connection pool to a PostgreSQL database.
+///
+/// # Examples
+///
+/// ```rust
+/// let store = Store::new(connect_to_database());
+/// let questions = store.get_questions(litmit. offset).await;
+/// ```
 #[derive(Debug, Clone)]
 pub struct Store {
     pub connection: PgPool,
 }
 
 impl Store {
+    /// Initializes a new `Store` instance with the provided database URL.
     pub async fn new(db_url: &str) -> Result<Self, sqlx::Error> {
         tracing::warn!("{}", db_url);
         let db_pool = PgPoolOptions::new()
@@ -29,6 +45,7 @@ impl Store {
         })
     }
 
+    /// Retrieves a list of questions from the database with optional pagination.
     pub async fn get_questions(
         self,
         limit: Option<i32>,
@@ -54,6 +71,7 @@ impl Store {
         }
     }
 
+    /// Determines whether the given account is the owner of the specified question.
     pub async fn is_question_owner(
         &self,
         question_id: i32,
@@ -73,6 +91,7 @@ impl Store {
         }
     }
 
+    /// Adds a new question to the database and returns the created question.
     pub async fn add_question(
         self,
         new_question: NewQuestion,
@@ -99,6 +118,7 @@ impl Store {
             }
     }
 
+    /// Updates an existing question in the database and returns the updated question.
     pub async fn update_question(
         self,
         question: Question,
@@ -131,7 +151,7 @@ impl Store {
             }
         }
     }
-
+    /// Delete an existing question in the database
     pub async fn delete_question(self, id: i32, account_id: AccountId) -> Result<bool, Error> {
         match sqlx::query("DELETE FROM questions WHERE id = $1 AND account_id = $2")
             .bind(id)
@@ -147,6 +167,7 @@ impl Store {
         }
     }
 
+    /// Adds a new answer to the database and returns the created answer.
     pub async fn add_answer(
         self,
         new_answer: NewAnswer,
@@ -174,6 +195,7 @@ impl Store {
         }
     }
 
+    /// Adds a new account to the database and returns the created account.
     pub async fn add_account(self, account: Account) -> Result<bool, Error> {
         match sqlx::query("INSERT INTO accounts (email, password) VALUES ($1, $2)")
             .bind(account.email)
@@ -208,6 +230,7 @@ impl Store {
         }
     }
 
+    /// Updates email of an existing account in the database and returns the account.
     pub async fn update_account(
         self,
         account_id: AccountId,
@@ -235,6 +258,7 @@ impl Store {
         }
     }
 
+    /// Updates password of an existing account in the database and returns the account.
     pub async fn update_password(
         self,
         account_id: AccountId,
@@ -265,6 +289,7 @@ impl Store {
         }
     }
 
+    /// Retrieves a account's information from the database.
     pub async fn get_account_information(
         self,
         account_id: AccountId,
@@ -286,6 +311,7 @@ impl Store {
         }
     }
 
+    /// Determines whether the given account is the owner of the specified answer.
     pub async fn is_answer_owner(
         &self,
         answer_id: i32,
@@ -305,6 +331,7 @@ impl Store {
         }
     }
 
+    /// Updates an existing answer in the database and returns the updated answer.
     pub async fn update_answer(
         self,
         answer: Answer,
@@ -332,7 +359,7 @@ impl Store {
             }
         }
     }
-
+    /// Delete a new answer from the database by question's id.
     pub async fn delete_answer(self, id: i32, account_id: AccountId) -> Result<bool, Error> {
         match sqlx::query("DELETE FROM answers WHERE id = $1 AND account_id = $2")
             .bind(id)
@@ -348,6 +375,7 @@ impl Store {
         }
     }
 
+    /// Retrieves a list of answers of question from the database with optional pagination.
     pub async fn get_answers(
         self,
         question_id: i32,
