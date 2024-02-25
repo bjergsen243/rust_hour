@@ -2,6 +2,7 @@ workspace = { members = ["handle-errors", "integration-tests"] }
 [package]
 name = "rust_hour"
 version = "1.0.0"
+author = ["thanhsondeptrai243@gmail.com"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
