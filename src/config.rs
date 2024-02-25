@@ -22,10 +22,10 @@ pub struct Config {
     #[clap(long, default_value = "localhost")]
     pub db_host: String,
     /// PORT number for the database connection
-    #[clap(long, default_value = "5433")]
+    #[clap(long, default_value = "5432")]
     pub db_port: u16,
     /// Database name
-    #[clap(long, default_value = "rustwebdev")]
+    #[clap(long, default_value = "rust_hour")]
     pub db_name: String,
 }
 
