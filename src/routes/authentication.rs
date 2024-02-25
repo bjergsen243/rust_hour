@@ -199,7 +199,7 @@ mod authentication_tests {
     use super::{auth, env, issue_token, AccountId};
 
     #[tokio::test]
-    async fn post_questions_auth() {
+    async fn test_auth() {
         env::set_var("PASETO_KEY", "RANDOM WORDS WINTER MACINTOSH PC");
         let token = issue_token(AccountId(3));
 
