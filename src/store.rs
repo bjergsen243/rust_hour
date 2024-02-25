@@ -21,11 +21,6 @@ use crate::types::{
 /// * `connection`: A connection pool to a PostgreSQL database.
 ///
 /// # Examples
-///
-/// ```rust
-/// let store = Store::new(connect_to_database());
-/// let questions = store.get_questions(litmit. offset).await;
-/// ```
 #[derive(Debug, Clone)]
 pub struct Store {
     pub connection: PgPool,

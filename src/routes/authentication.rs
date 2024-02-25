@@ -196,10 +196,10 @@ pub async fn get_account_information(
 
 #[cfg(test)]
 mod authentication_tests {
-    use super::{auth, env, issue_token, AccountId};
+    use super::*;
 
     #[tokio::test]
-    async fn test_auth() {
+    async fn auth_valid() {
         env::set_var("PASETO_KEY", "RANDOM WORDS WINTER MACINTOSH PC");
         let token = issue_token(AccountId(3));
 
