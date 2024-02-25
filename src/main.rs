@@ -83,7 +83,7 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(warp::path::end())
         .and(routes::authentication::auth())
         .and(store_filter.clone())
-        .and(warp::body::form())
+        .and(warp::body::json())
         .and_then(routes::answer::add_answer);
 
     let registration = warp::post()
@@ -110,7 +110,7 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and_then(routes::authentication::update_password);
 
     let update_account = warp::put()
-        .and(warp::path("account"))
+        .and(warp::path("accounts"))
         .and(warp::path::end())
         .and(routes::authentication::auth())
         .and(store_filter.clone())
@@ -118,7 +118,7 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and_then(routes::authentication::update_account);
 
     let get_account_information = warp::get()
-        .and(warp::path("account"))
+        .and(warp::path("accounts"))
         .and(warp::path("me"))
         .and(routes::authentication::auth())
         .and(store_filter.clone())

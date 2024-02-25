@@ -153,7 +153,7 @@ impl Store {
         account_id: AccountId,
     ) -> Result<Answer, Error> {
         match sqlx::query(
-            "INSERT INTO answers (content, corresponding_question, account_id) VALUES ($1, $2, $3)",
+            "INSERT INTO answers (content, corresponding_question, account_id) VALUES ($1, $2, $3) RETURNING id, content, corresponding_question",
         )
         .bind(new_answer.content)
         .bind(new_answer.question_id.0)
@@ -161,27 +161,16 @@ impl Store {
         .map(|row: PgRow| Answer {
             id: AnswerId(row.get("id")),
             content: row.get("content"),
-            question_id: QuestionId(row.get("question_id")),
+            question_id: QuestionId(row.get("corresponding_question")),
         })
         .fetch_one(&self.connection)
         .await
         {
             Ok(answer) => Ok(answer),
             Err(error) => {
-                tracing::event!(
-                    tracing::Level::ERROR,
-                    code = error
-                        .as_database_error()
-                        .unwrap()
-                        .code()
-                        .unwrap()
-                        .parse::<i32>()
-                        .unwrap(),
-                    db_message = error.as_database_error().unwrap().message(),
-                    constraint = error.as_database_error().unwrap().constraint().unwrap()
-                );
+                tracing::event!(tracing::Level::ERROR, "{:?}", error);
                 Err(Error::DatabaseQueryError(error))
-            }
+            },
         }
     }
 
@@ -194,18 +183,7 @@ impl Store {
         {
             Ok(_) => Ok(true),
             Err(error) => {
-                tracing::event!(
-                    tracing::Level::ERROR,
-                    code = error
-                        .as_database_error()
-                        .unwrap()
-                        .code()
-                        .unwrap()
-                        .parse::<i32>()
-                        .unwrap(),
-                    db_message = error.as_database_error().unwrap().message(),
-                    constraint = error.as_database_error().unwrap().constraint().unwrap()
-                );
+                tracing::event!(tracing::Level::ERROR, "{:?}", error);
                 Err(Error::DatabaseQueryError(error))
             }
         }
