@@ -213,72 +213,44 @@ mod authentication_tests {
     }
 
     #[tokio::test]
-    async fn auth_invalid() {
-
-    }
+    async fn auth_invalid() {}
 
     #[tokio::test]
-    async fn register_valid() {
-        
-    }
+    async fn register_valid() {}
 
     #[tokio::test]
-    async fn register_missing_email() {
-        
-    }
+    async fn register_missing_email() {}
 
     #[tokio::test]
-    async fn register_missing_password() {
-        
-    }
+    async fn register_missing_password() {}
 
     #[tokio::test]
-    async fn login_valid() {
-        
-    }
+    async fn login_valid() {}
 
     #[tokio::test]
-    async fn login_missing_email() {
-        
-    }
+    async fn login_missing_email() {}
 
     #[tokio::test]
-    async fn login_missing_password() {
-        
-    }
+    async fn login_missing_password() {}
 
     #[tokio::test]
-    async fn login_wrong_password() {
-        
-    }
+    async fn login_wrong_password() {}
 
     #[tokio::test]
-    async fn login_invalid_email() {
-        
-    }
+    async fn login_invalid_email() {}
 
     #[tokio::test]
-    async fn update_account_valid() {
-        
-    }
+    async fn update_account_valid() {}
 
     #[tokio::test]
-    async fn update_account_missing_email() {
-        
-    }
+    async fn update_account_missing_email() {}
 
     #[tokio::test]
-    async fn update_password_valid() {
-        
-    }
+    async fn update_password_valid() {}
 
     #[tokio::test]
-    async fn update_password_missing_password() {
-        
-    }
+    async fn update_password_missing_password() {}
 
     #[tokio::test]
-    async fn get_account_information_valid() {
-        
-    }
+    async fn get_account_information_valid() {}
 }
