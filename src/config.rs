@@ -34,11 +34,11 @@ impl Config {
         dotenv::dotenv().ok();
         let config = Config::parse();
 
-        if let Err(_) = env::var("BAD_WORDS_API_KEY") {
+        if env::var("BAD_WORDS_API_KEY").is_err() {
             panic!("BadWords API key not set");
         }
 
-        if let Err(_) = env::var("PASETO_KEY") {
+        if env::var("PASETO_KEY").is_err() {
             panic!("PASETO_KEY not set");
         }
 
@@ -46,17 +46,13 @@ impl Config {
             .ok()
             .map(|val| val.parse::<u16>())
             .unwrap_or(Ok(config.port))
-            .map_err(|e| handle_errors::Error::ParseError(e))?;
+            .map_err(handle_errors::Error::ParseError)?;
 
-        let db_user =
-            env::var("POSTGRES_USER").unwrap_or(config.db_user.to_owned());
+        let db_user = env::var("POSTGRES_USER").unwrap_or(config.db_user.to_owned());
         let db_password = env::var("POSTGRES_PASSWORD").unwrap();
-        let db_host =
-            env::var("POSTGRES_HOST").unwrap_or(config.db_host.to_owned());
-        let db_port = env::var("POSTGRES_PORT")
-            .unwrap_or(config.db_port.to_string());
-        let db_name =
-            env::var("POSTGRES_DB").unwrap_or(config.db_name.to_owned());
+        let db_host = env::var("POSTGRES_HOST").unwrap_or(config.db_host.to_owned());
+        let db_port = env::var("POSTGRES_PORT").unwrap_or(config.db_port.to_string());
+        let db_name = env::var("POSTGRES_DB").unwrap_or(config.db_name.to_owned());
 
         Ok(Config {
             log_level: config.log_level,
@@ -66,7 +62,7 @@ impl Config {
             db_host,
             db_port: db_port
                 .parse::<u16>()
-                .map_err(|e| handle_errors::Error::ParseError(e))?,
+                .map_err(handle_errors::Error::ParseError)?,
             db_name,
         })
     }
