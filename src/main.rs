@@ -101,6 +101,56 @@ async fn main() -> Result<(), handle_errors::Error> {
         .and(warp::body::json())
         .and_then(routes::authentication::login);
 
+    let update_password = warp::put()
+        .and(warp::path("accounts"))
+        .and(warp::path("update_password"))
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::authentication::update_password);
+
+    let update_account = warp::put()
+        .and(warp::path("account"))
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::authentication::update_account);
+
+    let get_account_information = warp::get()
+        .and(warp::path("account"))
+        .and(warp::path("me"))
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and_then(routes::authentication::get_account_information);
+
+    let get_answers = warp::get()
+        .and(warp::path("questions"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path("answers"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(store_filter.clone())
+        .and_then(routes::question::get_answers);
+
+    let update_answer = warp::put()
+        .and(warp::path("answers"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and(warp::body::json())
+        .and_then(routes::answer::update_answer);
+
+    let delete_answer = warp::delete()
+        .and(warp::path("answers"))
+        .and(warp::path::param::<i32>())
+        .and(warp::path::end())
+        .and(routes::authentication::auth())
+        .and(store_filter.clone())
+        .and_then(routes::answer::delete_answer);
+
     let routes = get_questions
         .or(update_question)
         .or(add_question)
@@ -108,6 +158,12 @@ async fn main() -> Result<(), handle_errors::Error> {
         .or(add_answer)
         .or(registration)
         .or(login)
+        .or(update_password)
+        .or(update_account)
+        .or(get_account_information)
+        .or(get_answers)
+        .or(update_answer)
+        .or(delete_answer)
         .with(cors)
         .with(warp::trace::request())
         .recover(return_error);

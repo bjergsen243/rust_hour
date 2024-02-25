@@ -111,3 +111,26 @@ pub async fn add_question(
         Err(e) => Err(warp::reject::custom(e)),
     }
 }
+
+#[instrument]
+pub async fn get_answers(
+    id: i32,
+    params: HashMap<String, String>,
+    store: Store,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    event!(target: "rust_hour", Level::INFO, "querying questions");
+    let mut pagination = Pagination::default();
+
+    if !params.is_empty() {
+        event!(Level::INFO, pagination = true);
+        pagination = extract_pagination(params)?;
+    }
+
+    match store
+        .get_answers(id, pagination.limit, pagination.offset)
+        .await
+    {
+        Ok(res) => Ok(warp::reply::json(&res)),
+        Err(e) => Err(warp::reject::custom(e)),
+    }
+}
