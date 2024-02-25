@@ -9,7 +9,6 @@ pub struct Pagination {
     /// The index of the last item which has to be returned
     pub limit: Option<i32>,
     /// The index of the first item which has to be returned
-    //TODO: Why i32?
     pub offset: i32,
 }
 
@@ -21,7 +20,7 @@ pub struct Pagination {
 /// # Example usage
 /// ```rust
 /// use std::collections::HashMap;
-///
+/// use rust_hour::types::pagination;
 /// let mut query = HashMap::new();
 /// query.insert("limit".to_string(), "1".to_string());
 /// query.insert("offset".to_string(), "10".to_string());
