@@ -8,6 +8,14 @@ use crate::types::account::Session;
 use crate::types::pagination::{extract_pagination, Pagination};
 use crate::types::question::{NewQuestion, Question};
 
+/**
+ * @Notice Get questions
+ *
+ * @Dev Retrieves questions, with optional pagination.
+ *
+ * @params  `store`: A `Store` instance used to interact with the database.
+ * @params `params`: Query parameters for pagination.
+*/
 #[instrument]
 pub async fn get_questions(
     params: HashMap<String, String>,
@@ -30,6 +38,16 @@ pub async fn get_questions(
     }
 }
 
+/**
+ * @Notice Update question
+ *
+ * @Dev Allows a user to update an existing question, provided they are the owner.
+ *
+ * @params  `store`: A `Store` instance used to interact with the database.
+ * @params `id`: The ID of the question to be updated.
+ * @params `session`: The authenticated user session object.
+ * @params `question`: The updated question details.
+*/
 pub async fn update_question(
     id: i32,
     session: Session,
@@ -53,6 +71,15 @@ pub async fn update_question(
     }
 }
 
+/**
+ * @Notice Delete question
+ *
+ * @Dev Allows a user to delete an existing question, provided they are the owner.
+ *
+ * @params  `store`: A `Store` instance used to interact with the database.
+ * @params `session`: The authenticated user session object.
+ * @params `id`: The ID of the question to be deleted.
+*/
 pub async fn delete_question(
     id: i32,
     session: Session,
@@ -72,6 +99,16 @@ pub async fn delete_question(
     }
 }
 
+/**
+ * @Notice Add question
+ *
+ * @Dev This function allows a user to add a new question in the system.
+ *      It requires an authenticated user session and the details of the new question.
+ *
+ * @params  `store`: A `Store` instance used to interact with the database.
+ * @params `session`: The authenticated user session object.
+ * @params `new_question`: The details of the new question to be added.
+*/
 pub async fn add_question(
     session: Session,
     store: Store,
@@ -91,6 +128,15 @@ pub async fn add_question(
     }
 }
 
+/**
+ * @Notice Get answers of question
+ *
+ * @Dev Retrieves answers for a specific question, with optional pagination.
+ *
+ * @params  `store`: A `Store` instance used to interact with the database.
+ * @params `id`: The ID of the question
+ * @params `params`: Query parameters for pagination.
+*/
 #[instrument]
 pub async fn get_answers(
     id: i32,

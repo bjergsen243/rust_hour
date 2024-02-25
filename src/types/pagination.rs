@@ -16,7 +16,7 @@ pub struct Pagination {
 /// # Example query
 /// GET requests to this route can have a pagination attached so we just
 /// return the questions we need
-/// `/questions?start=1&end=10`
+/// `/questions?limit=1&offset=10`
 /// # Example usage
 /// ```rust
 /// use std::collections::HashMap;
