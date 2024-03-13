@@ -132,10 +132,6 @@ Delete answer
 curl --location --request DELETE 'localhost:8080/answers/1' --header 'Authorization: $TOKEN'
 ```
 
-## License
-
-MIT
-
    [Rust]: <https://www.rust-lang.org/>
    [Docker & Docker Compose]: <https://docs.docker.com/get-started/>
    [Postgres]: <https://www.postgresql.org/>
