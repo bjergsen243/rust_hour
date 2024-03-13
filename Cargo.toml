@@ -1,4 +1,4 @@
-workspace = { members = ["handle-errors", "integration-tests"] }
+workspace = { members = ["handle-errors"] }
 [package]
 name = "rust_hour"
 version = "1.0.0"

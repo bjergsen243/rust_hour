@@ -12,3 +12,5 @@ Cargo.lock
 **/.DS_STORE
 **/.vscode
 **/.env
+
+.idea
