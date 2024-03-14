@@ -211,46 +211,4 @@ mod authentication_tests {
 
         assert_eq!(res.await.unwrap().account_id, AccountId(3));
     }
-
-    #[tokio::test]
-    async fn auth_invalid() {}
-
-    #[tokio::test]
-    async fn register_valid() {}
-
-    #[tokio::test]
-    async fn register_missing_email() {}
-
-    #[tokio::test]
-    async fn register_missing_password() {}
-
-    #[tokio::test]
-    async fn login_valid() {}
-
-    #[tokio::test]
-    async fn login_missing_email() {}
-
-    #[tokio::test]
-    async fn login_missing_password() {}
-
-    #[tokio::test]
-    async fn login_wrong_password() {}
-
-    #[tokio::test]
-    async fn login_invalid_email() {}
-
-    #[tokio::test]
-    async fn update_account_valid() {}
-
-    #[tokio::test]
-    async fn update_account_missing_email() {}
-
-    #[tokio::test]
-    async fn update_password_valid() {}
-
-    #[tokio::test]
-    async fn update_password_missing_password() {}
-
-    #[tokio::test]
-    async fn get_account_information_valid() {}
 }

@@ -59,7 +59,7 @@ jobs:
   release-github-artifact:
     name: Release Packaging
     env:
-      PROJECT_NAME_UNDERSCORE: rust_hour
+      PROJECT_NAME_UNDERSCORE: server
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [cargo-check, fmt-check, test-and-coverage]
