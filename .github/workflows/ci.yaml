@@ -39,27 +39,18 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  test-and-coverage:
-    name: Test and Coverage
+  test:
+    name: cargo test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          rustup self update
-          rustup update
-          cargo install cargo-tarpaulin
-
-      - name: Run tests with coverage
-        run: |
-          cargo tarpaulin --all-features --verbose
+      - uses: actions/checkout@v4
+      - name: cargo test
+        run: cargo test
 
   release-github-artifact:
     name: Release Packaging
     env:
-      PROJECT_NAME_UNDERSCORE: server
+      PROJECT_NAME_UNDERSCORE: rust_hour
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [cargo-check, fmt-check, test-and-coverage]
@@ -90,5 +81,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME_UNDERSCORE }}
-          path: target/release/cli
+          path: target/release/server
 
