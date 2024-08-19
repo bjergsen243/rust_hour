@@ -15,7 +15,7 @@ tokio = { version = "1.1.1", features = ["full"] }
 handle-errors = { path = "handle-errors", version = "0.1.0" }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = "0.2"
-sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
+sqlx = { version = "0.8", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
 reqwest = { version = "0.11", features = ["json"] }
 reqwest-middleware = "0.1.1"
 reqwest-retry = "0.1.1"
