@@ -6,8 +6,43 @@ use warp::Filter;
 
 use crate::store::Store;
 use crate::types::account::{
-    Account, AccountId, AccountUpdatePassword, AccountUpdateRequest, Session,
+    Account, AccountId, AccountUpdatePassword, AccountUpdateRequest, Session, AccountResponse,
 };
+
+#[cfg(test)]
+mod tests;
+
+#[async_trait::async_trait]
+pub trait StoreTrait {
+    async fn add_account(&self, account: Account) -> Result<bool, handle_errors::Error>;
+    async fn get_account(&self, email: String) -> Result<Account, handle_errors::Error>;
+    async fn update_account(&self, account_id: AccountId, account: AccountUpdateRequest) -> Result<AccountResponse, handle_errors::Error>;
+    async fn update_password(&self, account_id: AccountId, password: AccountUpdatePassword) -> Result<bool, handle_errors::Error>;
+    async fn get_account_information(&self, account_id: AccountId) -> Result<AccountResponse, handle_errors::Error>;
+}
+
+#[async_trait::async_trait]
+impl StoreTrait for Store {
+    async fn add_account(&self, account: Account) -> Result<bool, handle_errors::Error> {
+        self.add_account(account).await
+    }
+
+    async fn get_account(&self, email: String) -> Result<Account, handle_errors::Error> {
+        self.get_account(email).await
+    }
+
+    async fn update_account(&self, account_id: AccountId, account: AccountUpdateRequest) -> Result<AccountResponse, handle_errors::Error> {
+        self.update_account(account_id, account).await
+    }
+
+    async fn update_password(&self, account_id: AccountId, password: AccountUpdatePassword) -> Result<bool, handle_errors::Error> {
+        self.update_password(account_id, password).await
+    }
+
+    async fn get_account_information(&self, account_id: AccountId) -> Result<AccountResponse, handle_errors::Error> {
+        self.get_account_information(account_id).await
+    }
+}
 
 /**
  * @Notice Registration
@@ -17,7 +52,7 @@ use crate::types::account::{
  * @params  `store`: A `Store` instance used to interact with the database.
  * @params `account`: An `Account` struct containing the account information to be registered.
 */
-pub async fn register(store: Store, account: Account) -> Result<impl warp::Reply, warp::Rejection> {
+pub async fn register<S: StoreTrait>(store: S, account: Account) -> Result<impl warp::Reply, warp::Rejection> {
     // Hashes the provided password using a secure algorithm.
     let hashed_password = hash_password(account.password.as_bytes());
     // Creates a new `Account` struct with the hashed password.
@@ -41,7 +76,7 @@ pub async fn register(store: Store, account: Account) -> Result<impl warp::Reply
  * @params  `store`: A `Store` instance used to interact with the database.
  * @params `login`: An `Account` struct containing the user's email and password
 */
-pub async fn login(store: Store, login: Account) -> Result<impl warp::Reply, warp::Rejection> {
+pub async fn login<S: StoreTrait>(store: S, login: Account) -> Result<impl warp::Reply, warp::Rejection> {
     // Attempts to retrieve the account associated with the provided email.
     match store.get_account(login.email).await {
         Ok(account) => match verify_password(&account.password, login.password.as_bytes()) {
@@ -67,70 +102,6 @@ pub async fn login(store: Store, login: Account) -> Result<impl warp::Reply, war
     }
 }
 
-// Verifies a provided token and extracts the associated session data
-pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
-    // Retrieve the PASETO key from the environment variable.
-    let key = env::var("PASETO_KEY").unwrap();
-    // Attempt to validate the token using PASETO's local token validation.
-    let token = paseto::tokens::validate_local_token(
-        &token,
-        None,
-        key.as_bytes(),
-        &paseto::tokens::TimeBackend::Chrono,
-    )
-    .map_err(|_| handle_errors::Error::CannotDecryptToken)?;
-    // Deserialize the token's payload into a `Session` struct.
-    serde_json::from_value::<Session>(token).map_err(|_| handle_errors::Error::CannotDecryptToken)
-}
-
-// Hashes a password securely using Argon2id and returns the result as a string.
-fn hash_password(password: &[u8]) -> String {
-    // Generate a random 32-byte salt for added security.
-    let salt = rand::thread_rng().gen::<[u8; 32]>();
-    // Use the default Argon2id configuration for secure hashing.
-    let config = Config::default();
-    // Hash the password with the provided salt and configuration.
-    argon2::hash_encoded(password, &salt, &config).unwrap()
-}
-
-// Verifies a password by comparing it to a stored hash and returns true if they match.
-fn verify_password(hash: &str, password: &[u8]) -> Result<bool, argon2::Error> {
-    // Verify the provided password against the stored hash and salt.
-    argon2::verify_encoded(hash, password)
-}
-
-// This function creates and returns a signed PASETO token containing the account ID.
-fn issue_token(account_id: AccountId) -> String {
-    // Retrieve the PASETO key securely from the environment variable.
-    let key = env::var("PASETO_KEY").unwrap();
-    // Set the expiration date of the token to one day in the future.
-    let current_date_time = Utc::now();
-    let dt = current_date_time + chrono::Duration::days(1);
-
-    // Build the PASETO token using a builder.
-    paseto::tokens::PasetoBuilder::new()
-        .set_encryption_key(&Vec::from(key.as_bytes()))
-        .set_expiration(&dt)
-        .set_not_before(&Utc::now())
-        .set_claim("account_id", serde_json::json!(account_id))
-        .build()
-        .expect("Failed to construct paseto token w/ builder!")
-}
-
-// This function defines a filter for authentication within your Warp application.
-pub fn auth() -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Clone {
-    // Extract the "Authorization" header from the request.
-    warp::header::<String>("Authorization").and_then(|token: String| {
-        // Attempt to verify the provided token using the `verify_token` function.
-        let token = match verify_token(token) {
-            Ok(t) => t,
-            Err(_) => return future::ready(Err(warp::reject::reject())),
-        };
-
-        future::ready(Ok(token))
-    })
-}
-
 /**
  * @Notice Update account
  *
@@ -140,9 +111,9 @@ pub fn auth() -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Cl
  * @params  `store`: A `Store` instance used to interact with the database.
  * @params `account`: An `AccountUpdateRequest` struct containing the user's email to update
 */
-pub async fn update_account(
+pub async fn update_account<S: StoreTrait>(
     session: Session,
-    store: Store,
+    store: S,
     account: AccountUpdateRequest,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
@@ -161,9 +132,9 @@ pub async fn update_account(
  * @params  `store`: A `Store` instance used to interact with the database.
  * @params `login`: A `Account` struct containing the user's email and password
 */
-pub async fn update_password(
+pub async fn update_password<S: StoreTrait>(
     session: Session,
-    store: Store,
+    store: S,
     password: AccountUpdatePassword,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
@@ -183,9 +154,9 @@ pub async fn update_password(
  * @params  `store`: A `Store` instance used to interact with the database.
  * @params `session`: A `Session` struct containing the user's id
 */
-pub async fn get_account_information(
+pub async fn get_account_information<S: StoreTrait>(
     session: Session,
-    store: Store,
+    store: S,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
     match store.get_account_information(account_id).await {
@@ -194,21 +165,64 @@ pub async fn get_account_information(
     }
 }
 
-#[cfg(test)]
-mod authentication_tests {
-    use super::*;
+// Hashes a password securely using Argon2id and returns the result as a string.
+fn hash_password(password: &[u8]) -> String {
+    let salt = rand::thread_rng().gen::<[u8; 32]>();
+    let config = Config::default();
+    argon2::hash_encoded(password, &salt, &config).unwrap()
+}
 
-    #[tokio::test]
-    async fn auth_valid() {
-        env::set_var("PASETO_KEY", "RANDOM WORDS WINTER MACINTOSH PC");
-        let token = issue_token(AccountId(3));
+// Verifies a password against its hash using Argon2id.
+fn verify_password(hash: &str, password: &[u8]) -> Result<bool, argon2::Error> {
+    argon2::verify_encoded(hash, password)
+}
 
-        let filter = auth();
+// Generates a PASETO token containing session information.
+fn issue_token(account_id: AccountId) -> String {
+    let key = env::var("PASETO_KEY").unwrap();
+    let current_date_time = Utc::now();
+    let exp = current_date_time + chrono::Duration::days(1);
 
-        let res = warp::test::request()
-            .header("Authorization", token)
-            .filter(&filter);
+    let session = Session {
+        account_id,
+        exp,
+        nbf: current_date_time,
+    };
 
-        assert_eq!(res.await.unwrap().account_id, AccountId(3));
-    }
+    paseto::tokens::PasetoBuilder::new()
+        .set_encryption_key(&Vec::from(key.as_bytes()))
+        .set_expiration(&exp)
+        .set_not_before(&session.nbf)
+        .set_claim("account_id", serde_json::json!(session.account_id))
+        .build()
+        .expect("Failed to construct paseto token w/ builder!")
+}
+
+pub fn auth() -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Clone {
+    // Extract the "Authorization" header from the request.
+    warp::header::<String>("Authorization").and_then(|token: String| {
+        // Attempt to verify the provided token using the `verify_token` function.
+        let token = match verify_token(token) {
+            Ok(t) => t,
+            Err(_) => return future::ready(Err(warp::reject::reject())),
+        };
+
+        future::ready(Ok(token))
+    })
+}
+
+// Verifies a provided token and extracts the associated session data
+pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
+    // Retrieve the PASETO key from the environment variable.
+    let key = env::var("PASETO_KEY").unwrap();
+    // Attempt to validate the token using PASETO's local token validation.
+    let token = paseto::tokens::validate_local_token(
+        &token,
+        None,
+        key.as_bytes(),
+        &paseto::tokens::TimeBackend::Chrono,
+    )
+    .map_err(|_| handle_errors::Error::CannotDecryptToken)?;
+    // Deserialize the token's payload into a `Session` struct.
+    serde_json::from_value::<Session>(token).map_err(|_| handle_errors::Error::CannotDecryptToken)
 }

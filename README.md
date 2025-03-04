@@ -1,138 +1,243 @@
 # Rust Hour
-## _The Simple CRUD Rust Application_
 
-Rust Hour allows users to create questions and answer them via HTTP.
+A robust CRUD application built with Rust, featuring user authentication, question-answer functionality, and containerized deployment.
+
+[![CI Pipeline](https://github.com/bjergsen243/rust_hour/actions/workflows/ci.yaml/badge.svg)](https://github.com/bjergsen243/rust_hour/actions/workflows/ci.yaml)
 
 ## Features
 
-- Users can create accounts and log in.
-- Users can update email, password.
-- Users can create questions with a title, content, and tags.
-- Users can update questions.
-- Users can delete questions.
-- Users can answers questions with a content.
-- User can update answers.
-- Users can delete answers.
+- **User Management**
+  - Account creation and authentication
+  - Email and password updates
+  - JWT-based authentication
+- **Question Management**
+  - Create, read, update, and delete questions
+  - Tag support for better categorization
+  - Pagination support
+- **Answer Management**
+  - Create, read, update, and delete answers
+  - Answer ownership tracking
+  - Pagination support
+- **API Documentation**
+  - RESTful API endpoints
+  - Comprehensive curl examples
+- **Modern Development Setup**
+  - Docker and Docker Compose support
+  - GitHub Actions CI/CD pipeline
+  - Code coverage and security scanning
 
 ## Prerequisites
 
-Make sure you installed those things before started!
+Before you begin, ensure you have installed:
 
-- [Rust] - Rust for programming.
-- [Docker & Docker Compose] - Docker and Docker Compose for containerization.
-- [Postgres] - Postgres for database.
+- [Rust](https://www.rust-lang.org/) (1.75 or later)
+- [Docker](https://docs.docker.com/get-started/) (20.10 or later)
+- [Docker Compose](https://docs.docker.com/compose/) (v2.0 or later)
+- [PostgreSQL](https://www.postgresql.org/) (15 or later, if running locally)
 
-## Installation
-Clone this repository
+## Quick Start
+
+1. Clone the repository:
+
+   ```sh
+   git clone https://github.com/bjergsen243/rust_hour
+   cd rust_hour
+   ```
+
+2. Copy the environment file and configure it:
+
+   ```sh
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. Start the application using Docker:
+
+   ```sh
+   docker compose up -d
+   ```
+
+   The API will be available at `http://localhost:8080`
+
+## Development Setup
+
+1. Install Rust dependencies:
+
+   ```sh
+   cargo build
+   ```
+
+2. Run the tests:
+
+   ```sh
+   cargo test
+   ```
+
+3. Start the development server:
+   ```sh
+   cargo run
+   ```
+
+## Test Coverage
+
+Current test coverage is 24.79%. Our target is to maintain coverage above 80%. Here's how to check and improve test coverage:
+
+1. Install cargo-tarpaulin:
+   ```sh
+   cargo install cargo-tarpaulin
+   ```
+
+2. Run coverage analysis:
+   ```sh
+   cargo tarpaulin
+   ```
+
+Areas needing coverage improvement:
+- `src/store.rs` (0% coverage)
+- `src/lib.rs` (0% coverage)
+- `src/routes/authentication.rs` (27.76% coverage)
+- `src/routes/question.rs` (52.08% coverage)
+
+To improve coverage:
+1. Add unit tests for untested functions
+2. Include integration tests for API endpoints
+3. Add property-based tests for complex logic
+4. Ensure error cases are tested
+5. Mock external dependencies where appropriate
+
+## API Documentation
+
+### Authentication
+
+All authenticated endpoints require a JWT token in the Authorization header:
+
 ```sh
-git clone https://github.com/bjergsen243/rust_hour
+Authorization: Bearer <your-token>
 ```
 
-## Get started
-Change to the project's folder
-```sh
-cd rust_hour
-```
-Build docker
-```sh
-docker compose build
-```
+### User Management
 
-Up the docker compose
-```sh
-docker compose up
-```
-
-Run the application
-```sh
-cargo run
-```
-
-Test the application
-```sh
-cargo test
-```
-
-## How to use
-### Start the application
-```sh
-cargo run
-```
-### User
-Create user
+#### Create Account
 
 ```sh
-curl --location --request POST 'localhost:8080/registration' --header 'Content-Type: application/json' --data-raw '{"email": "example@gmail.com", "password": "123456789"}'
+curl -X POST 'localhost:8080/registration' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "example@gmail.com", "password": "123456789"}'
 ```
 
-Sign in
+#### Login
+
 ```sh
-curl --location --request POST 'localhost:8080/login' --header 'Content-Type: application/json' --data-raw '{"email": "example@gmail.com", "password": "123456789"}'
+curl -X POST 'localhost:8080/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "example@gmail.com", "password": "123456789"}'
 ```
-After sign in, you will have a `TOKEN`, you have to use it to do other actions.
 
-Update user's email
+#### Update Email
+
 ```sh
-curl --location --request PUT 'localhost:8080/accounts' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"email": "update@gmail.com"}'
+curl -X PUT 'localhost:8080/accounts' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "update@gmail.com"}'
 ```
 
-Update user's password
+#### Update Password
+
 ```sh
-curl --location --request PUT 'localhost:8080/accounts/update_password' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"password": "1234567890"}'
+curl -X PUT 'localhost:8080/accounts/update_password' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"password": "1234567890"}'
 ```
 
-Get user's information
+#### Get User Information
+
 ```sh
-curl --location --request GET 'localhost:8080/accounts/me' --header 'Authorization: $TOKEN' 
+curl -X GET 'localhost:8080/accounts/me' \
+  -H 'Authorization: Bearer <token>'
 ```
 
-### Question
+### Question Management
 
-Create question
+#### Create Question
+
 ```sh
-curl --location --request POST 'localhost:8080/questions' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"title": "hello world", "content": "hello world", "tags": null}'
+curl -X POST 'localhost:8080/questions' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "hello world", "content": "hello world", "tags": ["rust", "web"]}'
 ```
 
-Update question
+#### Update Question
+
 ```sh
-curl --location --request PUT 'localhost:8080/questions/1' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"id": 1, "title": "update title", "content": "update content", "tags": null}'
+curl -X PUT 'localhost:8080/questions/1' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"id": 1, "title": "update title", "content": "update content", "tags": ["updated"]}'
 ```
 
-Delete question
+#### Delete Question
+
 ```sh
-curl --location --request DELETE 'localhost:8080/questions/1' --header 'Authorization: $TOKEN'
+curl -X DELETE 'localhost:8080/questions/1' \
+  -H 'Authorization: Bearer <token>'
 ```
 
-Get questions
+#### List Questions
+
 ```sh
-curl --location --request GET 'localhost:8080/questions?limit=20&offset=0'
+curl -X GET 'localhost:8080/questions?limit=20&offset=0'
 ```
 
-Get answers of question
+#### Get Question Answers
+
 ```sh
-curl --location --request GET 'localhost:8080/questions/1/answers?limit=20&offset=0' 
+curl -X GET 'localhost:8080/questions/1/answers?limit=20&offset=0'
 ```
 
-### Answer
+### Answer Management
 
-Create answer
+#### Create Answer
+
 ```sh
-curl --location --request POST 'localhost:8080/answers' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"question_id": 2, "content": "answer question 2"}'
-
+curl -X POST 'localhost:8080/answers' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"question_id": 2, "content": "answer question 2"}'
 ```
 
-Update answer
+#### Update Answer
+
 ```sh
-curl --location --request PUT 'localhost:8080/answers/1' --header 'Authorization: $TOKEN' --header 'Content-Type: application/json' --data-raw '{"id": 1, "question_id": 2, "content": "update answer"}'
-
+curl -X PUT 'localhost:8080/answers/1' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"id": 1, "question_id": 2, "content": "update answer"}'
 ```
 
-Delete answer
+#### Delete Answer
+
 ```sh
-curl --location --request DELETE 'localhost:8080/answers/1' --header 'Authorization: $TOKEN'
+curl -X DELETE 'localhost:8080/answers/1' \
+  -H 'Authorization: Bearer <token>'
 ```
 
-   [Rust]: <https://www.rust-lang.org/>
-   [Docker & Docker Compose]: <https://docs.docker.com/get-started/>
-   [Postgres]: <https://www.postgresql.org/>
-   
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Acknowledgments
+
+- Built with [actix-web](https://actix.rs/)
+- Database powered by [PostgreSQL](https://www.postgresql.org/)
+- Authentication using [jsonwebtoken](https://github.com/Keats/jsonwebtoken)

@@ -3,10 +3,16 @@ use std::collections::HashMap;
 use tracing::{event, instrument, Level};
 use warp::http::StatusCode;
 
-use crate::store::Store;
 use crate::types::account::Session;
 use crate::types::pagination::{extract_pagination, Pagination};
-use crate::types::question::{NewQuestion, Question};
+use crate::types::question::{NewQuestion, Question, QuestionId};
+use crate::handle_errors;
+
+pub mod store_trait;
+use store_trait::StoreTrait;
+
+#[cfg(test)]
+mod tests;
 
 /**
  * @Notice Get questions
@@ -17,9 +23,9 @@ use crate::types::question::{NewQuestion, Question};
  * @params `params`: Query parameters for pagination.
 */
 #[instrument]
-pub async fn get_questions(
+pub async fn get_questions<S: StoreTrait>(
     params: HashMap<String, String>,
-    store: Store,
+    store: S,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     event!(target: "rust_hour", Level::INFO, "querying questions");
     let mut pagination = Pagination::default();
@@ -48,10 +54,10 @@ pub async fn get_questions(
  * @params `session`: The authenticated user session object.
  * @params `question`: The updated question details.
 */
-pub async fn update_question(
-    id: i32,
+pub async fn update_question<S: StoreTrait>(
+    id: QuestionId,
     session: Session,
-    store: Store,
+    store: S,
     question: Question,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
@@ -80,16 +86,16 @@ pub async fn update_question(
  * @params `session`: The authenticated user session object.
  * @params `id`: The ID of the question to be deleted.
 */
-pub async fn delete_question(
-    id: i32,
+pub async fn delete_question<S: StoreTrait>(
+    id: QuestionId,
     session: Session,
-    store: Store,
+    store: S,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
     if store.is_question_owner(id, &account_id).await? {
         match store.delete_question(id, account_id).await {
             Ok(_) => Ok(warp::reply::with_status(
-                format!("Question {} deleted", id),
+                format!("Question {} deleted", id.0),
                 StatusCode::OK,
             )),
             Err(e) => Err(warp::reject::custom(e)),
@@ -109,9 +115,9 @@ pub async fn delete_question(
  * @params `session`: The authenticated user session object.
  * @params `new_question`: The details of the new question to be added.
 */
-pub async fn add_question(
+pub async fn add_question<S: StoreTrait>(
     session: Session,
-    store: Store,
+    store: S,
     new_question: NewQuestion,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
@@ -138,10 +144,10 @@ pub async fn add_question(
  * @params `params`: Query parameters for pagination.
 */
 #[instrument]
-pub async fn get_answers(
-    id: i32,
+pub async fn get_answers<S: StoreTrait>(
+    id: QuestionId,
     params: HashMap<String, String>,
-    store: Store,
+    store: S,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     event!(target: "rust_hour", Level::INFO, "querying questions");
     let mut pagination = Pagination::default();

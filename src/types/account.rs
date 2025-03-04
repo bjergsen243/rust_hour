@@ -12,7 +12,7 @@ pub struct Session {
 }
 
 /// Represents a user account with their credentials.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Account {
     /// Unique identifier of the account (optional for new accounts).
     pub id: Option<AccountId>,
@@ -45,6 +45,6 @@ pub struct AccountResponse {
 }
 
 /// Used for requesting password updates.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountUpdatePassword(pub String);

@@ -1,8 +1,14 @@
 use warp::http::StatusCode;
 
-use crate::store::Store;
 use crate::types::account::Session;
 use crate::types::answer::{Answer, NewAnswer};
+use crate::handle_errors;
+
+pub mod store_trait;
+use store_trait::StoreTrait;
+
+#[cfg(test)]
+mod tests;
 
 /**
  * @Notice Add answer to a question
@@ -14,9 +20,9 @@ use crate::types::answer::{Answer, NewAnswer};
  * @params `session`: The authenticated user session object.
  * @params `new_answer`: The details of the new answer to be added.
 */
-pub async fn add_answer(
+pub async fn add_answer<S: StoreTrait>(
     session: Session,
-    store: Store,
+    store: S,
     new_answer: NewAnswer,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     // Extract the account ID from the session for authorization.
@@ -44,10 +50,10 @@ pub async fn add_answer(
  * @params `session`: The authenticated user session object.
  * @params `answer`: The updated answer details.
 */
-pub async fn update_answer(
+pub async fn update_answer<S: StoreTrait>(
     id: i32,
     session: Session,
-    store: Store,
+    store: S,
     answer: Answer,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     // Extract the account ID from the session for authorization.
@@ -79,10 +85,10 @@ pub async fn update_answer(
  * @params `session`: The authenticated user session object.
  * @params `id`: The ID of the answer to be updated.
 */
-pub async fn delete_answer(
+pub async fn delete_answer<S: StoreTrait>(
     id: i32,
     session: Session,
-    store: Store,
+    store: S,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     // Extract the account ID from the session for authorization.
     let account_id = session.account_id;

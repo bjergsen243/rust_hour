@@ -2,7 +2,7 @@ use crate::types::question::QuestionId;
 use serde::{Deserialize, Serialize};
 
 /// Represents an answer to a question.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Answer {
     /// Unique identifier for the answer.
     pub id: AnswerId,
@@ -17,7 +17,7 @@ pub struct Answer {
 pub struct AnswerId(pub i32);
 
 /// Used for creating new answers.
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NewAnswer {
     /// Content of the new answer.
     pub content: String,
