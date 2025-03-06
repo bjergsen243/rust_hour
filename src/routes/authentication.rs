@@ -54,7 +54,8 @@ impl StoreTrait for Store {
 */
 pub async fn register<S: StoreTrait>(store: S, account: Account) -> Result<impl warp::Reply, warp::Rejection> {
     // Hashes the provided password using a secure algorithm.
-    let hashed_password = hash_password(account.password.as_bytes());
+    let hashed_password = hash_password(account.password.as_bytes())
+        .map_err(|e| warp::reject::custom(handle_errors::Error::ArgonLibraryError(e)))?;
     // Creates a new `Account` struct with the hashed password.
     let account = Account {
         id: account.id,
@@ -138,7 +139,8 @@ pub async fn update_password<S: StoreTrait>(
     password: AccountUpdatePassword,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
-    let hashed_password = AccountUpdatePassword(hash_password(password.0.as_bytes()));
+    let hashed_password = AccountUpdatePassword(hash_password(password.0.as_bytes())
+        .map_err(|e| handle_errors::Error::ArgonLibraryError(e))?);
 
     match store.update_password(account_id, hashed_password).await {
         Ok(res) => Ok(warp::reply::json(&res)),
@@ -166,10 +168,13 @@ pub async fn get_account_information<S: StoreTrait>(
 }
 
 // Hashes a password securely using Argon2id and returns the result as a string.
-fn hash_password(password: &[u8]) -> String {
+fn hash_password(password: &[u8]) -> Result<String, argon2::Error> {
+    if password.is_empty() {
+        return Err(argon2::Error::PwdTooShort);
+    }
     let salt = rand::thread_rng().gen::<[u8; 32]>();
     let config = Config::default();
-    argon2::hash_encoded(password, &salt, &config).unwrap()
+    argon2::hash_encoded(password, &salt, &config)
 }
 
 // Verifies a password against its hash using Argon2id.
@@ -177,9 +182,25 @@ fn verify_password(hash: &str, password: &[u8]) -> Result<bool, argon2::Error> {
     argon2::verify_encoded(hash, password)
 }
 
+// Verifies a provided token and extracts the associated session data
+pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
+    // Retrieve the PASETO key from the environment variable.
+    let key = env::var("PASETO_KEY").map_err(|e| handle_errors::Error::EnvironmentError(e))?;
+    // Attempt to validate the token using PASETO's local token validation.
+    let token = paseto::tokens::validate_local_token(
+        &token,
+        None,
+        key.as_bytes(),
+        &paseto::tokens::TimeBackend::Chrono,
+    )
+    .map_err(|_| handle_errors::Error::CannotDecryptToken)?;
+    // Deserialize the token's payload into a `Session` struct.
+    serde_json::from_value::<Session>(token).map_err(|_| handle_errors::Error::CannotDecryptToken)
+}
+
 // Generates a PASETO token containing session information.
 fn issue_token(account_id: AccountId) -> String {
-    let key = env::var("PASETO_KEY").unwrap();
+    let key = env::var("PASETO_KEY").expect("PASETO_KEY must be set");
     let current_date_time = Utc::now();
     let exp = current_date_time + chrono::Duration::days(1);
 
@@ -209,20 +230,4 @@ pub fn auth() -> impl Filter<Extract = (Session,), Error = warp::Rejection> + Cl
 
         future::ready(Ok(token))
     })
-}
-
-// Verifies a provided token and extracts the associated session data
-pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
-    // Retrieve the PASETO key from the environment variable.
-    let key = env::var("PASETO_KEY").unwrap();
-    // Attempt to validate the token using PASETO's local token validation.
-    let token = paseto::tokens::validate_local_token(
-        &token,
-        None,
-        key.as_bytes(),
-        &paseto::tokens::TimeBackend::Chrono,
-    )
-    .map_err(|_| handle_errors::Error::CannotDecryptToken)?;
-    // Deserialize the token's payload into a `Session` struct.
-    serde_json::from_value::<Session>(token).map_err(|_| handle_errors::Error::CannotDecryptToken)
 }

@@ -13,6 +13,9 @@ use crate::types::{
 use crate::routes::answer::store_trait::StoreTrait as AnswerStoreTrait;
 use crate::routes::question::store_trait::StoreTrait as QuestionStoreTrait;
 
+#[cfg(test)]
+mod tests;
+
 /// Represents a persistent storage unit for your application.
 ///
 /// This struct provides a connection pool to a PostgreSQL database (`PgPool`).

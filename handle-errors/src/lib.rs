@@ -23,6 +23,7 @@ pub enum Error {
     MiddlewareReqwestAPIError(MiddlewareReqwestError),
     ClientError(APILayerError),
     ServerError(APILayerError),
+    EnvironmentError(std::env::VarError),
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +66,9 @@ impl std::fmt::Display for Error {
             }
             Error::ServerError(err) => {
                 write!(f, "External Server error: {}", err)
+            }
+            Error::EnvironmentError(err) => {
+                write!(f, "Environment variable error: {}", err)
             }
         }
     }
@@ -159,5 +163,170 @@ pub async fn return_error(r: Rejection) -> Result<impl Reply, Rejection> {
             "Route not found".to_string(),
             StatusCode::NOT_FOUND,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::num::ParseIntError;
+    use warp::reject;
+
+    #[tokio::test]
+    async fn test_return_error_database_query_error() {
+        let error = Error::DatabaseQueryError(sqlx::Error::RowNotFound);
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_reqwest_api_error() {
+        let error = Error::ReqwestAPIError(reqwest::Error::from(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "test error",
+        )));
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_unauthorized() {
+        let error = Error::Unauthorized;
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_wrong_password() {
+        let error = Error::WrongPassword;
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_middleware_reqwest_error() {
+        let error = Error::MiddlewareReqwestAPIError(reqwest_middleware::Error::Middleware(Box::new(
+            std::io::Error::new(std::io::ErrorKind::Other, "test error"),
+        )));
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_client_error() {
+        let error = Error::ClientError(APILayerError {
+            status: 400,
+            message: "Bad Request".to_string(),
+        });
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_server_error() {
+        let error = Error::ServerError(APILayerError {
+            status: 500,
+            message: "Internal Server Error".to_string(),
+        });
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_cors_forbidden() {
+        let error = warp::reject::custom(warp::cors::CorsForbidden);
+        let result = return_error(error).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_body_deserialize() {
+        let error = warp::reject::custom(warp::filters::body::BodyDeserializeError::Json(None));
+        let result = return_error(error).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_parse_error() {
+        let parse_error = "abc".parse::<i32>().unwrap_err();
+        let error = Error::ParseError(parse_error);
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_missing_parameters() {
+        let error = Error::MissingParameters;
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_cannot_decrypt_token() {
+        let error = Error::CannotDecryptToken;
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_argon_library_error() {
+        let error = Error::ArgonLibraryError(argon2::Error::AdParam);
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_migration_error() {
+        let error = Error::MigrationError(sqlx::migrate::MigrateError::VersionMissing(1));
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_return_error_environment_error() {
+        let error = Error::EnvironmentError(std::env::VarError::NotPresent);
+        let rejection = reject::custom(error);
+        let result = return_error(rejection).await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_error_display() {
+        let parse_error = "abc".parse::<i32>().unwrap_err();
+        let error = Error::ParseError(parse_error);
+        assert!(!error.to_string().is_empty());
+
+        let error = Error::MissingParameters;
+        assert_eq!(error.to_string(), "Missing parameter");
+
+        let error = Error::WrongPassword;
+        assert_eq!(error.to_string(), "Wrong password");
+
+        let error = Error::CannotDecryptToken;
+        assert_eq!(error.to_string(), "Cannot decrypt error");
+
+        let error = Error::Unauthorized;
+        assert_eq!(error.to_string(), "No permission to change the underlying resource");
+    }
+
+    #[test]
+    fn test_api_layer_error_display() {
+        let error = APILayerError {
+            status: 400,
+            message: "Bad Request".to_string(),
+        };
+        assert_eq!(error.to_string(), "Status: 400, Message: Bad Request");
     }
 }
