@@ -166,10 +166,7 @@ pub async fn setup_store(config: &config::Config) -> Result<store::Store, handle
     );
 
     tracing_subscriber::fmt()
-        // Use the filter we built above to determine which traces to record.
         .with_env_filter(log_filter)
-        // Record an event when each span closes. This can be used to time our
-        // routes' durations!
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
