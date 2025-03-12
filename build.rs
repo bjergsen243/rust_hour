@@ -4,7 +4,7 @@ use std::{borrow::Cow, process::Command};
 /// Generate the `cargo:` key output
 pub fn generate_cargo_keys() {
     let output = Command::new("git")
-        .args(&["rev-parse", "--short", "HEAD"])
+        .args(["rev-parse", "--short", "HEAD"])
         .output();
 
     let commit = match output {

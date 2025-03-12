@@ -140,7 +140,7 @@ pub async fn update_password<S: StoreTrait>(
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let account_id = session.account_id;
     let hashed_password = AccountUpdatePassword(hash_password(password.0.as_bytes())
-        .map_err(|e| handle_errors::Error::ArgonLibraryError(e))?);
+        .map_err(handle_errors::Error::ArgonLibraryError)?);
 
     match store.update_password(account_id, hashed_password).await {
         Ok(res) => Ok(warp::reply::json(&res)),
@@ -185,7 +185,7 @@ fn verify_password(hash: &str, password: &[u8]) -> Result<bool, argon2::Error> {
 // Verifies a provided token and extracts the associated session data
 pub fn verify_token(token: String) -> Result<Session, handle_errors::Error> {
     // Retrieve the PASETO key from the environment variable.
-    let key = env::var("PASETO_KEY").map_err(|e| handle_errors::Error::EnvironmentError(e))?;
+    let key = env::var("PASETO_KEY").map_err(handle_errors::Error::EnvironmentError)?;
     // Attempt to validate the token using PASETO's local token validation.
     let token = paseto::tokens::validate_local_token(
         &token,
