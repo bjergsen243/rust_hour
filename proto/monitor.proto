@@ -1,0 +1,127 @@
+syntax = "proto3";
+package monitor;
+
+service MonitorService {
+    rpc CreateEndpoint(CreateEndpointRequest) returns (EndpointResponse);
+    rpc ListEndpoints(ListEndpointsRequest) returns (ListEndpointsResponse);
+    rpc GetEndpoint(GetEndpointRequest) returns (EndpointDetailResponse);
+    rpc UpdateEndpoint(UpdateEndpointRequest) returns (EndpointResponse);
+    rpc DeleteEndpoint(DeleteEndpointRequest) returns (SuccessResponse);
+    rpc GetMetrics(GetMetricsRequest) returns (MetricsResponse);
+
+    // Saga support: bulk operations for account deletion
+    rpc DeleteAllEndpoints(DeleteAllEndpointsRequest) returns (DeleteAllEndpointsResponse);
+    rpc RestoreEndpoints(RestoreEndpointsRequest) returns (SuccessResponse);
+}
+
+message CreateEndpointRequest {
+    string account_id = 1;
+    string name = 2;
+    string url = 3;
+    string method = 4;
+    string headers_json = 5;
+    int32 expected_status = 6;
+    int32 interval_secs = 7;
+    int32 timeout_ms = 8;
+}
+
+message EndpointResponse {
+    string id = 1;
+    string account_id = 2;
+    string name = 3;
+    string url = 4;
+    string method = 5;
+    string headers_json = 6;
+    int32 expected_status = 7;
+    int32 interval_secs = 8;
+    int32 timeout_ms = 9;
+    bool is_active = 10;
+    string created_at = 11;
+    string updated_at = 12;
+}
+
+message ListEndpointsRequest {
+    string account_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+
+message ListEndpointsResponse {
+    repeated EndpointResponse endpoints = 1;
+    int32 total = 2;
+}
+
+message GetEndpointRequest {
+    string id = 1;
+    string account_id = 2;
+}
+
+message EndpointDetailResponse {
+    EndpointResponse endpoint = 1;
+    CheckResult latest_check = 2;
+    double uptime_percent_24h = 3;
+    double avg_response_time_ms = 4;
+}
+
+message UpdateEndpointRequest {
+    string id = 1;
+    string account_id = 2;
+    optional string name = 3;
+    optional string url = 4;
+    optional string method = 5;
+    optional string headers_json = 6;
+    optional int32 expected_status = 7;
+    optional int32 interval_secs = 8;
+    optional int32 timeout_ms = 9;
+    optional bool is_active = 10;
+}
+
+message DeleteEndpointRequest {
+    string id = 1;
+    string account_id = 2;
+}
+
+message SuccessResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetMetricsRequest {
+    string endpoint_id = 1;
+    string account_id = 2;
+    string from = 3;
+    string to = 4;
+    int32 limit = 5;
+    int32 offset = 6;
+}
+
+message CheckResult {
+    string id = 1;
+    string endpoint_id = 2;
+    int32 status_code = 3;
+    int32 response_time_ms = 4;
+    bool is_healthy = 5;
+    string error_message = 6;
+    string checked_at = 7;
+}
+
+message MetricsResponse {
+    repeated CheckResult results = 1;
+    int32 total = 2;
+    double uptime_percent = 3;
+    double avg_response_time_ms = 4;
+}
+
+// Saga messages
+message DeleteAllEndpointsRequest {
+    string account_id = 1;
+}
+
+message DeleteAllEndpointsResponse {
+    bool success = 1;
+    int32 deleted_count = 2;
+}
+
+message RestoreEndpointsRequest {
+    string account_id = 1;
+}

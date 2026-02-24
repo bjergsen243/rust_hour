@@ -1,37 +1,84 @@
-workspace = { members = ["handle-errors"] }
-[package]
-name = "rust_hour"
-version = "1.0.0"
-author = ["thanhsondeptrai243@gmail.com"]
+[workspace]
+members = [
+    "crates/common",
+    "crates/gateway",
+    "crates/auth-service",
+    "crates/monitor-service",
+    "crates/monitor-query-service",
+    "crates/alert-service",
+    "crates/saga-orchestrator",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
 edition = "2021"
+authors = ["Son Nguyen Thanh <thanhsondeptrai243@gmail.com>"]
+license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
 
-[dependencies]
-warp = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.1.1", features = ["full"] }
-handle-errors = { path = "handle-errors", version = "0.1.0" }
-tracing = { version = "0.1", features = ["log"] }
-tracing-subscriber = "0.3"
-sqlx = { version = "0.8", features = [ "runtime-tokio-rustls", "migrate", "postgres" ] }
-reqwest = { version = "0.11", features = ["json"] }
-reqwest-middleware = "0.1.1"
-reqwest-retry = "0.1.1"
-rand = "0.8"
+# Web framework (gateway)
+axum = { version = "0.8", features = ["macros"] }
+axum-extra = { version = "0.10", features = ["typed-header"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "request-id"] }
+
+# gRPC
+tonic = "0.12"
+tonic-build = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono", "migrate"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Auth
 rust-argon2 = "1.0"
 paseto = "2.0"
-chrono = "0.4.19"
-dotenv = "0.15.0"
-clap = { version = "3.1.7", features = ["derive"] }
-proc-macro2 = "1.0.37"
-openssl = { version = "0.10.32", features = ["vendored"] }
-regex = { version = "1.10.3", features = ["unicode-case"] }
-async-trait = "0.1.77"
 
-[build-dependencies]
-platforms = "2.0.0"
+# HTTP client (probes)
+reqwest = { version = "0.12", features = ["json"] }
 
-[dev-dependencies]
-mockall = "0.12.1"
+# Message broker (Kafka)
+rdkafka = { version = "0.37", features = ["cmake-build"] }
+
+# Caching / rate limiting
+fred = { version = "10", features = ["subscriber-client"] }
+
+# Scheduling
+tokio-cron-scheduler = "0.13"
+
+# Config
+config = "0.14"
+
+# Logging / tracing
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Misc
+rand = "0.8"
+regex = "1"
+async-trait = "0.1"
+thiserror = "2"
+anyhow = "1"
+futures = "0.3"
+
+# Testing
+mockall = "0.13"

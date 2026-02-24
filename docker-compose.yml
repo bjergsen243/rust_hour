@@ -1,47 +1,206 @@
-version: "3.9"
-
 services:
-  # PostgreSQL Database
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      POSTGRES_DB: "${DB_NAME}"
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      retries: 5
-    networks:
-      - rust_hour_network
+  # ─── Infrastructure ───────────────────────────────────────────
 
-  # Adminer (Database GUI)
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+      - "18081:18081"
+      - "18082:18082"
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Adminer (Database GUI) — optional, useful for development
   adminer:
     image: adminer
-    container_name: adminer
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "8081:8080"
-    networks:
-      - rust_hour_network
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DEFAULT_SERVER: postgres
+
+  # ─── Application Services ─────────────────────────────────────
+
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/gateway.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Config prefix: GATEWAY_
+      GATEWAY_AUTH_SERVICE_URL: "http://auth-service:50051"
+      GATEWAY_MONITOR_SERVICE_URL: "http://monitor-service:50052"
+      GATEWAY_ALERT_SERVICE_URL: "http://alert-service:50053"
+      GATEWAY_REDIS_URL: "redis://redis:6379"
+      GATEWAY_PORT: "8080"
+      GATEWAY_GRPC_TIMEOUT_MS: "5000"
+      GATEWAY_RATE_LIMIT_PER_MIN: "100"
+      RUST_LOG: "info"
+    depends_on:
+      auth-service:
+        condition: service_started
+      monitor-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/auth.Dockerfile
+    ports:
+      - "51051:51051"  # health + metrics
+    environment:
+      # Config prefix: AUTH_
+      AUTH_DATABASE_URL: "postgres://postgres:password@postgres:5432/auth_db"
+      AUTH_PASETO_KEY: "${PASETO_KEY}"
+      AUTH_PORT: "50051"
+      RUST_LOG: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:51051/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  monitor-service:
+    build:
+      context: .
+      dockerfile: docker/monitor.Dockerfile
+    ports:
+      - "51052:51052"  # health + metrics
+    environment:
+      # Config prefix: MONITOR_
+      MONITOR_DATABASE_URL: "postgres://postgres:password@postgres:5432/monitor_db"
+      MONITOR_KAFKA_BROKERS: "redpanda:9092"
+      MONITOR_PORT: "50052"
+      RUST_LOG: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:51052/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  monitor-query-service:
+    build:
+      context: .
+      dockerfile: docker/monitor-query.Dockerfile
+    ports:
+      - "51054:51054"  # health + metrics
+    environment:
+      # Config prefix: MONITOR_QUERY_
+      MONITOR_QUERY_DATABASE_URL: "postgres://postgres:password@postgres:5432/monitor_db"
+      MONITOR_QUERY_KAFKA_BROKERS: "redpanda:9092"
+      MONITOR_QUERY_REDIS_URL: "redis://redis:6379"
+      RUST_LOG: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:51054/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  alert-service:
+    build:
+      context: .
+      dockerfile: docker/alert.Dockerfile
+    ports:
+      - "51053:51053"  # health + metrics
+    environment:
+      # Config prefix: ALERT_
+      ALERT_DATABASE_URL: "postgres://postgres:password@postgres:5432/alert_db"
+      ALERT_KAFKA_BROKERS: "redpanda:9092"
+      ALERT_PORT: "50053"
+      RUST_LOG: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:51053/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  saga-orchestrator:
+    build:
+      context: .
+      dockerfile: docker/saga.Dockerfile
+    ports:
+      - "51055:51055"  # health + metrics
+    environment:
+      # Config prefix: SAGA_
+      SAGA_DATABASE_URL: "postgres://postgres:password@postgres:5432/saga_db"
+      SAGA_AUTH_SERVICE_URL: "http://auth-service:50051"
+      SAGA_MONITOR_SERVICE_URL: "http://monitor-service:50052"
+      SAGA_ALERT_SERVICE_URL: "http://alert-service:50053"
+      RUST_LOG: "info"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:51055/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
-  db-data:
-  cargo-cache:
-  target-cache:
-
-networks:
-  rust_hour_network:
-    driver: bridge
+  pgdata:

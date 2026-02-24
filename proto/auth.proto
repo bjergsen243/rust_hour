@@ -1,0 +1,72 @@
+syntax = "proto3";
+package auth;
+
+service AuthService {
+    rpc Register(RegisterRequest) returns (AuthResponse);
+    rpc Login(LoginRequest) returns (AuthResponse);
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+    rpc GetAccount(GetAccountRequest) returns (AccountResponse);
+    rpc UpdatePassword(UpdatePasswordRequest) returns (SuccessResponse);
+
+    // Saga support: account deletion lifecycle
+    rpc MarkDeleting(MarkDeletingRequest) returns (SuccessResponse);
+    rpc RevertDeleting(RevertDeletingRequest) returns (SuccessResponse);
+    rpc PermanentlyDelete(PermanentlyDeleteRequest) returns (SuccessResponse);
+}
+
+message RegisterRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message AuthResponse {
+    string token = 1;
+}
+
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenResponse {
+    string account_id = 1;
+    string email = 2;
+}
+
+message GetAccountRequest {
+    string account_id = 1;
+}
+
+message AccountResponse {
+    string id = 1;
+    string email = 2;
+    string created_at = 3;
+}
+
+message UpdatePasswordRequest {
+    string account_id = 1;
+    string old_password = 2;
+    string new_password = 3;
+}
+
+message SuccessResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Saga messages
+message MarkDeletingRequest {
+    string account_id = 1;
+}
+
+message RevertDeletingRequest {
+    string account_id = 1;
+}
+
+message PermanentlyDeleteRequest {
+    string account_id = 1;
+}
